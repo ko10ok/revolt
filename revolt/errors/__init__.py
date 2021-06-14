@@ -1,8 +1,10 @@
 from valera import ValidationResult
 
-from .substitution_error import SubstitutionError
-
 __all__ = ("SubstitutionError", "make_substitution_error",)
+
+
+class SubstitutionError(Exception):
+    pass
 
 
 def make_substitution_error(result: ValidationResult) -> SubstitutionError:
