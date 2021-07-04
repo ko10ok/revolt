@@ -36,31 +36,31 @@ class Substitutor(SchemaVisitor[GenericSchema]):
         result = schema.__accept__(self._validator, value=value)
         if result.has_errors():
             raise make_substitution_error(result)
-        return NoneSchema(schema.props)
+        return schema.__class__(schema.props)
 
     def visit_bool(self, schema: BoolSchema, *, value: Any = Nil, **kwargs: Any) -> BoolSchema:
         result = schema.__accept__(self._validator, value=value)
         if result.has_errors():
             raise make_substitution_error(result)
-        return BoolSchema(schema.props.update(value=value))
+        return schema.__class__(schema.props.update(value=value))
 
     def visit_int(self, schema: IntSchema, *, value: Any = Nil, **kwargs: Any) -> IntSchema:
         result = schema.__accept__(self._validator, value=value)
         if result.has_errors():
             raise make_substitution_error(result)
-        return IntSchema(schema.props.update(value=value))
+        return schema.__class__(schema.props.update(value=value))
 
     def visit_float(self, schema: FloatSchema, *, value: Any = Nil, **kwargs: Any) -> FloatSchema:
         result = schema.__accept__(self._validator, value=value)
         if result.has_errors():
             raise make_substitution_error(result)
-        return FloatSchema(schema.props.update(value=value))
+        return schema.__class__(schema.props.update(value=value))
 
     def visit_str(self, schema: StrSchema, *, value: Any = Nil, **kwargs: Any) -> StrSchema:
         result = schema.__accept__(self._validator, value=value)
         if result.has_errors():
             raise make_substitution_error(result)
-        return StrSchema(schema.props.update(value=value))
+        return schema.__class__(schema.props.update(value=value))
 
     def _substitute_elements(self,
                              value: List[Any],
@@ -93,14 +93,14 @@ class Substitutor(SchemaVisitor[GenericSchema]):
 
         if (schema.props.elements is Nil) and (schema.props.type is Nil):
             elements = [self._from_native(val) for val in value]
-            return ListSchema(schema.props.update(elements=elements))
+            return schema.__class__(schema.props.update(elements=elements))
 
         if schema.props.type is not Nil:
             elements = []
             for val in value:
                 res = schema.props.type.__accept__(self, value=val, **kwargs)
                 elements.append(res)
-            return ListSchema(schema.props.update(elements=elements, type=Nil))
+            return schema.__class__(schema.props.update(elements=elements, type=Nil))
 
         elements = cast(List[GenericSchema], schema.props.elements)
 
@@ -112,22 +112,22 @@ class Substitutor(SchemaVisitor[GenericSchema]):
                 except SubstitutionError:
                     pass
                 else:
-                    return ListSchema(schema.props.update(elements=substituted))
+                    return schema.__class__(schema.props.update(elements=substituted))
 
         # head
         if (len(elements) >= 2) and is_ellipsis(elements[-1]):
             substituted = self._substitute_elements(value, elements[:-1], **kwargs)
-            return ListSchema(schema.props.update(elements=substituted))
+            return schema.__class__(schema.props.update(elements=substituted))
 
         # tail
         if (len(elements) >= 1) and is_ellipsis(elements[0]):
             elements = elements[1:]
             index = max(0, len(value) - len(elements))
             substituted = self._substitute_elements(value, elements, index, **kwargs)
-            return ListSchema(schema.props.update(elements=substituted))
+            return schema.__class__(schema.props.update(elements=substituted))
 
         substituted = self._substitute_elements(value, elements, **kwargs)
-        return ListSchema(schema.props.update(elements=substituted))
+        return schema.__class__(schema.props.update(elements=substituted))
 
     def visit_dict(self, schema: DictSchema, *, value: Any = Nil, **kwargs: Any) -> DictSchema:
         result = schema.__class__().__accept__(self._validator, value=value)
@@ -140,20 +140,20 @@ class Substitutor(SchemaVisitor[GenericSchema]):
         keys: Dict[Any, Any] = {}
         if schema.props.keys is Nil or (len(schema.props.keys) == 1 and ... in schema.props.keys):
             for key, val in value.items():
-                keys[key] = self._from_native(val)
+                keys[key] = (self._from_native(val), False)
             if (schema.props.keys is not Nil) and (... in schema.props.keys):
-                keys[...] = ...
+                keys[...] = (..., False)
         else:
-            for key, val in schema.props.keys.items():
+            for key, (val, is_optional) in schema.props.keys.items():
                 if key in value:
-                    keys[key] = val.__accept__(self, value=value[key], **kwargs)
+                    keys[key] = (val.__accept__(self, value=value[key], **kwargs), False)
                 else:
-                    keys[key] = val
+                    keys[key] = (val, is_optional)
             for key, val in value.items():
                 if key not in schema.props.keys:
                     raise SubstitutionError(f"Unknown key {key!r}")
 
-        return DictSchema(schema.props.update(keys=keys))
+        return schema.__class__(schema.props.update(keys=keys))
 
     def visit_any(self, schema: AnySchema, *, value: Any = Nil, **kwargs: Any) -> AnySchema:
         result = schema.__accept__(self._validator, value=value)
@@ -171,10 +171,10 @@ class Substitutor(SchemaVisitor[GenericSchema]):
                     pass
                 else:
                     types.append(substituted)
-        return AnySchema(schema.props.update(types=tuple(types)))
+        return schema.__class__(schema.props.update(types=tuple(types)))
 
     def visit_const(self, schema: ConstSchema, *, value: Any = Nil, **kwargs: Any) -> Any:
         result = schema.__accept__(self._validator, value=value)
         if result.has_errors():
             raise make_substitution_error(result)
-        return ConstSchema(schema.props.update(value=value))
+        return schema.__class__(schema.props.update(value=value))
