@@ -204,3 +204,30 @@ def test_str_substitution_substr_error(value: str):
 
     with then:
         assert exception.type is SubstitutionError
+
+
+def test_str_substitution_regex():
+    with given:
+        pattern = "[a-z]+"
+        sch = schema.str.regex(pattern)
+        value = "banana"
+
+    with when:
+        res = substitute(sch, value)
+
+    with then:
+        assert res == schema.str(value).regex(pattern)
+        assert res != sch
+
+
+def test_str_substitution_regex_error():
+    with given:
+        pattern = "[0-9]+"
+        sch = schema.str.regex(pattern)
+        value = "banana"
+
+    with when, raises(Exception) as exception:
+        substitute(sch, value)
+
+    with then:
+        assert exception.type is SubstitutionError
