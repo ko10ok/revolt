@@ -178,3 +178,29 @@ def test_str_substitution_alphabet_error():
 
     with then:
         assert exception.type is SubstitutionError
+
+
+@pytest.mark.parametrize("substr", ["", "anan", "banana"])
+def test_str_substitution_substr(substr: str):
+    with given:
+        value = "banana"
+        sch = schema.str.contains(substr)
+
+    with when:
+        res = substitute(sch, value)
+
+    with then:
+        assert res == schema.str(value).contains(substr)
+        assert res != sch
+
+
+@pytest.mark.parametrize("value", ["", "yellow"])
+def test_str_substitution_substr_error(value: str):
+    with given:
+        sch = schema.str.contains("banana")
+
+    with when, raises(Exception) as exception:
+        substitute(sch, value)
+
+    with then:
+        assert exception.type is SubstitutionError
