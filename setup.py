@@ -13,7 +13,7 @@ def find_dev_required():
 
 setup(
     name="revolt",
-    version="1.3.0",
+    version="1.3.1",
     description="Value substitutor for district42 schema",
     long_description=open("README.md").read(),
     long_description_content_type="text/markdown",
