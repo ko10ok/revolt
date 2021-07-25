@@ -142,6 +142,36 @@ def test_dict_less_keys_substitution():
         assert res != sch
 
 
+def test_dict_nested_less_keys_substitution():
+    with given:
+        sch = schema.dict({
+            "friends": schema.list(schema.dict({
+                "id": schema.int,
+                "name": schema.str,
+            }))
+        })
+
+    with when:
+        res = substitute(sch, {
+            "friends": [
+                {
+                    "id": 1
+                }
+            ]
+        })
+
+    with then:
+        assert res == schema.dict({
+            "friends": schema.list([
+                schema.dict({
+                    "id": schema.int(1),
+                    "name": schema.str,
+                })
+            ])
+        })
+        assert res != sch
+
+
 def test_dict_with_optional_key_substitution():
     with given:
         sch = schema.dict({

@@ -17,6 +17,7 @@ from district42.utils import is_ellipsis
 from niltype import Nil
 from valera import Formatter, Validator
 
+from ._validator import SubstitutorValidator
 from .errors import SubstitutionError, make_substitution_error
 
 __all__ = ("Substitutor",)
@@ -25,7 +26,7 @@ __all__ = ("Substitutor",)
 class Substitutor(SchemaVisitor[GenericSchema]):
     def __init__(self, validator: Optional[Validator] = None,
                  formatter: Optional[Formatter] = None) -> None:
-        self._validator = validator or Validator()
+        self._validator = validator or SubstitutorValidator()
         self._formatter = formatter or Formatter()
 
     def _from_native(self, value: Any) -> GenericSchema:
@@ -132,7 +133,7 @@ class Substitutor(SchemaVisitor[GenericSchema]):
         return schema.__class__(schema.props.update(elements=substituted))
 
     def visit_dict(self, schema: DictSchema, *, value: Any = Nil, **kwargs: Any) -> DictSchema:
-        result = schema.__class__().__accept__(self._validator, value=value)
+        result = schema.__accept__(self._validator, value=value)
         if result.has_errors():
             raise make_substitution_error(result, self._formatter)
 
