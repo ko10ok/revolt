@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, cast
+from typing import Any, Dict, List, Optional, cast
 
 from district42 import SchemaVisitor, from_native
 from district42.types import (
@@ -15,7 +15,7 @@ from district42.types import (
 )
 from district42.utils import is_ellipsis
 from niltype import Nil
-from valera import Validator
+from valera import Formatter, Validator
 
 from .errors import SubstitutionError, make_substitution_error
 
@@ -23,8 +23,10 @@ __all__ = ("Substitutor",)
 
 
 class Substitutor(SchemaVisitor[GenericSchema]):
-    def __init__(self) -> None:
-        self._validator = Validator()
+    def __init__(self, validator: Optional[Validator] = None,
+                 formatter: Optional[Formatter] = None) -> None:
+        self._validator = validator or Validator()
+        self._formatter = formatter or Formatter()
 
     def _from_native(self, value: Any) -> GenericSchema:
         try:
@@ -35,31 +37,31 @@ class Substitutor(SchemaVisitor[GenericSchema]):
     def visit_none(self, schema: NoneSchema, *, value: Any = Nil, **kwargs: Any) -> NoneSchema:
         result = schema.__accept__(self._validator, value=value)
         if result.has_errors():
-            raise make_substitution_error(result)
+            raise make_substitution_error(result, self._formatter)
         return schema.__class__(schema.props)
 
     def visit_bool(self, schema: BoolSchema, *, value: Any = Nil, **kwargs: Any) -> BoolSchema:
         result = schema.__accept__(self._validator, value=value)
         if result.has_errors():
-            raise make_substitution_error(result)
+            raise make_substitution_error(result, self._formatter)
         return schema.__class__(schema.props.update(value=value))
 
     def visit_int(self, schema: IntSchema, *, value: Any = Nil, **kwargs: Any) -> IntSchema:
         result = schema.__accept__(self._validator, value=value)
         if result.has_errors():
-            raise make_substitution_error(result)
+            raise make_substitution_error(result, self._formatter)
         return schema.__class__(schema.props.update(value=value))
 
     def visit_float(self, schema: FloatSchema, *, value: Any = Nil, **kwargs: Any) -> FloatSchema:
         result = schema.__accept__(self._validator, value=value)
         if result.has_errors():
-            raise make_substitution_error(result)
+            raise make_substitution_error(result, self._formatter)
         return schema.__class__(schema.props.update(value=value))
 
     def visit_str(self, schema: StrSchema, *, value: Any = Nil, **kwargs: Any) -> StrSchema:
         result = schema.__accept__(self._validator, value=value)
         if result.has_errors():
-            raise make_substitution_error(result)
+            raise make_substitution_error(result, self._formatter)
         return schema.__class__(schema.props.update(value=value))
 
     def _substitute_elements(self,
@@ -86,7 +88,7 @@ class Substitutor(SchemaVisitor[GenericSchema]):
     def visit_list(self, schema: ListSchema, *, value: Any = Nil, **kwargs: Any) -> ListSchema:
         result = schema.__accept__(self._validator, value=value)
         if result.has_errors():
-            raise make_substitution_error(result)
+            raise make_substitution_error(result, self._formatter)
 
         if ... in value:
             raise SubstitutionError("Can't substitute ...")
@@ -132,7 +134,7 @@ class Substitutor(SchemaVisitor[GenericSchema]):
     def visit_dict(self, schema: DictSchema, *, value: Any = Nil, **kwargs: Any) -> DictSchema:
         result = schema.__class__().__accept__(self._validator, value=value)
         if result.has_errors():
-            raise make_substitution_error(result)
+            raise make_substitution_error(result, self._formatter)
 
         if ... in value:
             raise SubstitutionError("Can't substitute ...")
@@ -158,7 +160,7 @@ class Substitutor(SchemaVisitor[GenericSchema]):
     def visit_any(self, schema: AnySchema, *, value: Any = Nil, **kwargs: Any) -> AnySchema:
         result = schema.__accept__(self._validator, value=value)
         if result.has_errors():
-            raise make_substitution_error(result)
+            raise make_substitution_error(result, self._formatter)
 
         types = []
         if schema.props.types is Nil:
@@ -176,5 +178,5 @@ class Substitutor(SchemaVisitor[GenericSchema]):
     def visit_const(self, schema: ConstSchema, *, value: Any = Nil, **kwargs: Any) -> Any:
         result = schema.__accept__(self._validator, value=value)
         if result.has_errors():
-            raise make_substitution_error(result)
+            raise make_substitution_error(result, self._formatter)
         return schema.__class__(schema.props.update(value=value))
