@@ -57,7 +57,6 @@ class SubstitutorValidator(Validator):
     def visit_dict(self, schema: DictSchema, *,
                    value: Any = Nil, path: Nilable[PathHolder] = Nil,
                    **kwargs: Any) -> ValidationResult:
-
         result = self._validation_result_factory()
         if path is Nil:
             path = self._path_holder_factory()
