@@ -155,7 +155,7 @@ def test_list_contains_body_elements_with_len_substitution_error(value: List[Any
         assert exception.type is SubstitutionError
 
 
-def test_list_contains_some_elements_substitution_error():
+def test_list_contains_some_substitution_error():
     with given:
         sch = schema.list([...])
 
@@ -164,3 +164,61 @@ def test_list_contains_some_elements_substitution_error():
 
     with then:
         assert exception.type is SubstitutionError
+
+
+def test_list_contains_ellipsis_substitution_error():
+    with given:
+        sch = schema.list
+
+    with when, raises(Exception) as exception:
+        substitute(sch, [...])
+
+    with then:
+        assert exception.type is SubstitutionError
+
+
+def test_list_contains_all_ellipsis_substitution_error():
+    with given:
+        sch = schema.list
+
+    with when, raises(Exception) as exception:
+        substitute(sch, [..., ...])
+
+    with then:
+        assert exception.type is SubstitutionError
+
+
+def test_list_contains_substitution_head():
+    with given:
+        sch = schema.list
+
+    with when:
+        res = substitute(sch, [1, 2, ...])
+
+    with then:
+        assert res == schema.list([schema.int(1), schema.int(2), ...])
+        assert res != sch
+
+
+def test_list_contains_substitution_tail():
+    with given:
+        sch = schema.list
+
+    with when:
+        res = substitute(sch, [..., 1, 2])
+
+    with then:
+        assert res == schema.list([..., schema.int(1), schema.int(2)])
+        assert res != sch
+
+
+def test_list_contains_substitution_body():
+    with given:
+        sch = schema.list
+
+    with when:
+        res = substitute(sch, [..., 1, 2, ...])
+
+    with then:
+        assert res == schema.list([..., schema.int(1), schema.int(2), ...])
+        assert res != sch

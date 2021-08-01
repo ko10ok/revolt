@@ -91,21 +91,29 @@ class Substitutor(SchemaVisitor[GenericSchema]):
         if result.has_errors():
             raise make_substitution_error(result, self._formatter)
 
-        if ... in value:
-            raise SubstitutionError("Can't substitute ...")
+        if len(value) > 0 and all(is_ellipsis(x) for x in value):
+            raise SubstitutionError("Can't substitute all ...")
 
         if (schema.props.elements is Nil) and (schema.props.type is Nil):
-            elements = [self._from_native(val) for val in value]
+            elements = []
+            for val in value:
+                element = val if is_ellipsis(val) else self._from_native(val)
+                elements.append(element)
             return schema.__class__(schema.props.update(elements=elements))
 
         if schema.props.type is not Nil:
             elements = []
             for val in value:
-                res = schema.props.type.__accept__(self, value=val, **kwargs)
-                elements.append(res)
+                if is_ellipsis(val):
+                    element = val
+                else:
+                    element = schema.props.type.__accept__(self, value=val, **kwargs)
+                elements.append(element)
             return schema.__class__(schema.props.update(elements=elements, type=Nil))
 
         elements = cast(List[GenericSchema], schema.props.elements)
+        if ... in value:
+            raise SubstitutionError("Can't substitute ...")
 
         # body
         if (len(elements) > 2) and is_ellipsis(elements[0]) and is_ellipsis(elements[-1]):
