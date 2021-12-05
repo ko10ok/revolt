@@ -4,6 +4,7 @@ from district42 import SchemaVisitor, from_native
 from district42.types import (
     AnySchema,
     BoolSchema,
+    BytesSchema,
     ConstSchema,
     DictSchema,
     FloatSchema,
@@ -185,6 +186,12 @@ class Substitutor(SchemaVisitor[GenericSchema]):
         return schema.__class__(schema.props.update(types=tuple(types)))
 
     def visit_const(self, schema: ConstSchema, *, value: Any = Nil, **kwargs: Any) -> Any:
+        result = schema.__accept__(self._validator, value=value)
+        if result.has_errors():
+            raise make_substitution_error(result, self._formatter)
+        return schema.__class__(schema.props.update(value=value))
+
+    def visit_bytes(self, schema: BytesSchema, *, value: Any = Nil, **kwargs: Any) -> BytesSchema:
         result = schema.__accept__(self._validator, value=value)
         if result.has_errors():
             raise make_substitution_error(result, self._formatter)
