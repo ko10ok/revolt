@@ -9,10 +9,12 @@ from district42.types import (
     DictSchema,
     FloatSchema,
     GenericSchema,
+    GenericTypeAliasSchema,
     IntSchema,
     ListSchema,
     NoneSchema,
     StrSchema,
+    TypeAliasPropsType,
 )
 from district42.utils import is_ellipsis
 from niltype import Nil
@@ -196,3 +198,9 @@ class Substitutor(SchemaVisitor[GenericSchema]):
         if result.has_errors():
             raise make_substitution_error(result, self._formatter)
         return schema.__class__(schema.props.update(value=value))
+
+    def visit_type_alias(self, schema: GenericTypeAliasSchema[TypeAliasPropsType], *,
+                         value: Any = Nil,
+                         **kwargs: Any) -> GenericTypeAliasSchema[TypeAliasPropsType]:
+        substituted = schema.props.type.__accept__(self, value=value, **kwargs)
+        return schema.__class__(schema.props.update(type=substituted))
