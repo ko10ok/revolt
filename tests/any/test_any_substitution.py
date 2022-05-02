@@ -109,3 +109,38 @@ def test_any_nested_values_substitution_error():
 
     with then:
         assert exception.type is SubstitutionError
+
+
+def test_any_dict_substitution():
+    with given:
+        sch = schema.any(
+            schema.dict({
+                "key": schema.str
+            })
+        )
+
+    with when:
+        res = substitute(sch, {"key": "..."})
+
+    with then:
+        assert res == schema.any(
+            schema.dict({
+                "key": schema.str("...")
+            })
+        )
+        assert res != sch
+
+
+def test_any_dict_substitution_error():
+    with given:
+        sch = schema.any(
+            schema.dict({
+                "key": schema.str
+            })
+        )
+
+    with when, raises(Exception) as exception:
+        substitute(sch, {"unknown": "..."})
+
+    with then:
+        assert exception.type is SubstitutionError

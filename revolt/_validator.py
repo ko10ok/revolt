@@ -75,7 +75,7 @@ class SubstitutorValidator(Validator):
                 res = val.__accept__(self, value=value[key], path=nested_path, **kwargs)
                 result.add_errors(res.get_errors())
 
-        if (... not in schema.props.keys) and (len(schema.props.keys) != len(value)):
+        if (... not in schema.props.keys) and (set(schema.props.keys) != set(value)):
             for key, val in value.items():
                 if key not in schema.props.keys:
                     result.add_error(ExtraKeyValidationError(path, value, key))

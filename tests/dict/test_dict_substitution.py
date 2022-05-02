@@ -100,6 +100,19 @@ def test_dict_incorrect_value_substitution_error():
         assert exception.type is SubstitutionError
 
 
+def test_dict_incorrect_key_substitution_error():
+    with given:
+        sch = schema.dict({
+            "id": schema.int,
+        })
+
+    with when, raises(Exception) as exception:
+        substitute(sch, {"identifier": 42})
+
+    with then:
+        assert exception.type is SubstitutionError
+
+
 def test_dict_more_keys_substitution_error():
     with given:
         sch = schema.dict({
@@ -170,6 +183,21 @@ def test_dict_nested_less_keys_substitution():
             ])
         })
         assert res != sch
+
+
+def test_dict_incorrect_nested_key_substitution_error():
+    with given:
+        sch = schema.dict({
+            "res": schema.dict({
+                "id": schema.int,
+            })
+        })
+
+    with when, raises(Exception) as exception:
+        substitute(sch, {"identifier": {"id": 42}})
+
+    with then:
+        assert exception.type is SubstitutionError
 
 
 def test_dict_with_optional_key_substitution():
