@@ -16,6 +16,7 @@ def test_schema_int_with_schema_int_substitution():
 
     with then:
         assert res == sch
+        assert repr(res) == repr(sch)
         assert id(res) != id(sch)
 
 
@@ -32,6 +33,7 @@ def test_schema_int_with_schema_int_with_value_substitution():
     with then:
         assert sch == schema.int
         assert res == clarification_type
+        assert repr(res) == repr(clarification_type)
         assert id(res) != id(clarification_type)
         assert id(res) != id(sch)
 
@@ -51,6 +53,7 @@ def test_schema_int_with_value_with_schema_int_with_same_value_substitution():
 
     with then:
         assert res == clarification_type
+        assert repr(res) == repr(clarification_type)
         assert id(res) != id(clarification_type)
         assert id(res) != id(sch)
 
