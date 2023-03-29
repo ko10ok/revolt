@@ -1,7 +1,7 @@
 from copy import deepcopy
 from typing import Any
 
-from district42.types import DictSchema, ListSchema, IntSchema
+from district42.types import DictSchema, ListSchema, IntSchema, FloatSchema
 from district42.utils import is_ellipsis
 from niltype import Nil, Nilable
 from th import PathHolder
@@ -137,6 +137,80 @@ class SubstitutorValidator(Validator):
                             MaxValueValidationError(path, value.props.max, schema.props.min))
 
         elif isinstance(value, int):
+            if schema.props.value != Nil:
+                if schema.props.value != value:
+                    return result.add_error(
+                        ValueValidationError(path, value, schema.props.value))
+
+            if schema.props.max != Nil:
+                if value > schema.props.max:
+                    return result.add_error(
+                        MaxValueValidationError(path, value, schema.props.max))
+
+            if schema.props.min != Nil:
+                if value < schema.props.min:
+                    return result.add_error(
+                        MinValueValidationError(path, value, schema.props.min))
+        else:
+            return result.add_error(TypeValidationError(path, value, schema))
+
+        return result
+
+
+    def visit_float(self, schema: FloatSchema, *,
+                  value: Any = Nil, path: Nilable[PathHolder] = Nil,
+                  **kwargs: Any) -> ValidationResult:
+        if path == Nil:
+            path = ''
+        result = self._validation_result_factory()
+
+        if error := self._validate_type(path, value, (float, FloatSchema)):
+            return result.add_error(error)
+
+        if isinstance(value, FloatSchema):
+            if schema.props.value != Nil:
+                if schema.props.value != Nil:
+                    if schema.props.value != value.props.value:
+                        return result.add_error(
+                            ValueValidationError(path, value.props.value, schema.props.value))
+
+            if schema.props.min != Nil:
+                if value.props.min != Nil:
+                    if value.props.min < schema.props.min:
+                        # TODO new error MinMinValidationError
+                        return result.add_error(
+                            MinValueValidationError(path, value.props.min, schema.props.min))
+
+                if value.props.max != Nil:
+                    if value.props.max > schema.props.min:
+                        # TODO new error MaxMinValidationError
+                        return result.add_error(
+                            MaxValueValidationError(path, value.props.min, schema.props.max))
+
+                if value.props.value != Nil:
+                    if value.props.value < schema.props.min:
+                        return result.add_error(
+                            MinValueValidationError(path, value.props.min, schema.props.min))
+
+            if schema.props.max != Nil:
+                if value.props.max != Nil:
+                    if value.props.max > schema.props.max:
+                        # TODO new error MaxMaxValidationError
+                        return result.add_error(
+                            MaxValueValidationError(path, value.props.max, schema.props.min))
+
+                if value.props.min != Nil:
+                    if value.props.min > schema.props.max:
+                        # TODO new error MaxMinValidationError
+                        return result.add_error(
+                            MinValueValidationError(path, value.props.max, schema.props.max))
+
+                if value.props.value != Nil:
+                    if value.props.value > schema.props.max:
+                        return result.add_error(
+                            MaxValueValidationError(path, value.props.max, schema.props.min))
+
+        elif isinstance(value, float):
             if schema.props.value != Nil:
                 if schema.props.value != value:
                     return result.add_error(
