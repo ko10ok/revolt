@@ -42,6 +42,10 @@ class Substitutor(SchemaVisitor[GenericSchema]):
         result = schema.__accept__(self._validator, value=value)
         if result.has_errors():
             raise make_substitution_error(result, self._formatter)
+
+        if isinstance(value, NoneSchema):
+            return schema.__class__(value.props)
+
         return schema.__class__(schema.props)
 
     def visit_bool(self, schema: BoolSchema, *, value: Any = Nil, **kwargs: Any) -> BoolSchema:
