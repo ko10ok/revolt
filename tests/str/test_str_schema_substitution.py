@@ -1,22 +1,32 @@
 import pytest
 from baby_steps import then, when, given
 from district42 import schema, GenericSchema
+from district42.types import StrSchema
 from pytest import raises
 
 from revolt import substitute
 from revolt.errors import SubstitutionError
 
 
-def test_schema_str_with_schema_str_substitution():
-    with given:
-        sch = schema.str
-
+@pytest.mark.parametrize("schema", [
+    schema.str,
+    schema.str.len(2),
+    schema.str.len(1, ...),
+    schema.str.len(..., 2),
+    schema.str.len(1, 2),
+    schema.str.contains('aba'),
+    schema.str.contains('aba').len(1, ...),
+    schema.str.contains('aba').len(1, 20),
+    schema.str.contains('aba').len(..., 20),
+    schema.str.regex(r'aba'),
+])
+def test_schema_str_with_schema_str_substitution(schema: StrSchema):
     with when:
-        res = substitute(sch, sch)
+        res = substitute(schema, schema)
 
     with then:
-        assert res == sch
-        assert id(res) != id(sch)
+        assert res == schema
+        assert id(res) != id(schema)
 
 
 def test_schema_str_with_schema_str_with_value_substitution():
@@ -83,7 +93,7 @@ def test_schema_str_with_value_with_schema_str_with_different_value_substitution
     schema.float,
     schema.int,
     schema.none,
-    schema.str,
+    schema.list,
 ])
 def test_schema_str_with_different_schema_substitution_error(
     clarification_type: GenericSchema

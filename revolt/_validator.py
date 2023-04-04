@@ -3,7 +3,7 @@ from types import NoneType
 from typing import Any
 
 from district42.types import (
-    DictSchema, ListSchema, IntSchema, FloatSchema, BoolSchema, BytesSchema, NoneSchema
+    DictSchema, ListSchema, IntSchema, FloatSchema, BoolSchema, BytesSchema, NoneSchema, StrSchema
 )
 from district42.utils import is_ellipsis
 from niltype import Nil, Nilable
@@ -18,6 +18,8 @@ from valera.errors import (
 )
 
 __all__ = ("SubstitutorValidator",)
+
+from revolt.comparators import str_sub_schema_comparator
 
 
 class SubstitutorValidator(Validator):
@@ -293,5 +295,27 @@ class SubstitutorValidator(Validator):
 
         if error := self._validate_type(path, value, (NoneType, NoneSchema)):
             return result.add_error(error)
+
+        return result
+
+    def visit_str(self, schema: StrSchema, *,
+                  value: Any = Nil, path: Nilable[PathHolder] = Nil,
+                  **kwargs: Any) -> ValidationResult:
+        if path == Nil:
+            path = ''
+        result = self._validation_result_factory()
+
+        if error := self._validate_type(path, value, (str, StrSchema)):
+            return result.add_error(error)
+
+        if isinstance(value, StrSchema):
+            if not str_sub_schema_comparator(schema, value):
+                # TODO new error
+                return result.add_error(TypeValidationError(path, value, schema))
+
+        elif isinstance(value, str):
+            return super().visit_str(schema, value=value, path=path, **kwargs)
+        else:
+            return result.add_error(TypeValidationError(path, value, schema))
 
         return result
