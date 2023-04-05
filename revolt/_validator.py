@@ -21,6 +21,7 @@ from valera.errors import (
 __all__ = ("SubstitutorValidator",)
 
 from revolt.comparators import str_sub_schema_comparator
+from revolt.comparators.dict_comparator import dict_sub_schema_comparator
 
 
 class SubstitutorValidator(Validator):
@@ -68,24 +69,32 @@ class SubstitutorValidator(Validator):
         if path is Nil:
             path = self._path_holder_factory()
 
-        if error := self._validate_type(path, value, dict):
-            return result.add_error(error)
+        if isinstance(value, DictSchema):
+            if not dict_sub_schema_comparator(schema, value):
+                # TODO new error
+                return result.add_error(TypeValidationError(path, value, schema))
 
-        if schema.props.keys is Nil:
-            return result
+        elif isinstance(value, Dict):
+            if error := self._validate_type(path, value, dict):
+                return result.add_error(error)
 
-        for key, (val, is_optional) in schema.props.keys.items():
-            if is_ellipsis(key):
-                continue
-            if key in value:
-                nested_path = deepcopy(path)[key]
-                res = val.__accept__(self, value=value[key], path=nested_path, **kwargs)
-                result.add_errors(res.get_errors())
+            if schema.props.keys is Nil:
+                return result
 
-        if (... not in schema.props.keys) and (set(schema.props.keys) != set(value)):
-            for key, val in value.items():
-                if key not in schema.props.keys:
-                    result.add_error(ExtraKeyValidationError(path, value, key))
+            for key, (val, is_optional) in schema.props.keys.items():
+                if is_ellipsis(key):
+                    continue
+                if key in value:
+                    nested_path = deepcopy(path)[key]
+                    res = val.__accept__(self, value=value[key], path=nested_path, **kwargs)
+                    result.add_errors(res.get_errors())
+
+            if (... not in schema.props.keys) and (set(schema.props.keys) != set(value)):
+                for key, val in value.items():
+                    if key not in schema.props.keys:
+                        result.add_error(ExtraKeyValidationError(path, value, key))
+        else:
+            return result.add_error(TypeValidationError(path, value, schema))
 
         return result
 
