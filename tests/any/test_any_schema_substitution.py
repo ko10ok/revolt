@@ -57,7 +57,7 @@ def test_schema_any_with_value_with_schema_any_with_same_value_substitution():
         sch = schema.any(schema.int, schema.float)
 
     with given:
-        clarification_type = schema.dict(schema.int, schema.float)
+        clarification_type = schema.any(schema.int, schema.float)
 
     with when:
         res = substitute(sch, clarification_type)

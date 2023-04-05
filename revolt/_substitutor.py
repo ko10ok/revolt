@@ -1,4 +1,3 @@
-
 from typing import Any, Dict, List, Optional, cast
 
 from district42 import SchemaVisitor, from_native
@@ -204,6 +203,14 @@ class Substitutor(SchemaVisitor[GenericSchema]):
         result = schema.__accept__(self._validator, value=value)
         if result.has_errors():
             raise make_substitution_error(result, self._formatter)
+
+        if isinstance(value, AnySchema):
+            return schema.__class__(value.props)
+
+        if isinstance(value, (
+        StrSchema, BoolSchema, NoneSchema, IntSchema, FloatSchema, BytesSchema, ConstSchema,
+        DictSchema, ListSchema)):
+            return value.__class__(value.props)
 
         types = []
         if schema.props.types is Nil:

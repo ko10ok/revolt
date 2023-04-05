@@ -1,7 +1,8 @@
 from copy import deepcopy
 from types import NoneType
-from typing import Any
+from typing import Any, Dict
 
+from district42 import AnySchema
 from district42.types import (
     DictSchema, ListSchema, IntSchema, FloatSchema, BoolSchema, BytesSchema, NoneSchema, StrSchema
 )
@@ -14,7 +15,7 @@ from valera.errors import (
     LengthValidationError,
     MaxLengthValidationError,
     MinLengthValidationError, TypeValidationError, ValueValidationError, MinValueValidationError,
-    MaxValueValidationError,
+    MaxValueValidationError, SchemaMismatchValidationError,
 )
 
 __all__ = ("SubstitutorValidator",)
@@ -318,4 +319,28 @@ class SubstitutorValidator(Validator):
         else:
             return result.add_error(TypeValidationError(path, value, schema))
 
+        return result
+
+    def visit_any(self, schema: AnySchema, *,
+                  value: Any = Nil, path: Nilable[PathHolder] = Nil,
+                  **kwargs: Any) -> ValidationResult:
+        result = self._validation_result_factory()
+        if path is Nil:
+            path = self._path_holder_factory()
+
+        if isinstance(value, AnySchema):
+            # TODO check types intersection
+            #  via value.prop.types in schema.prop.types substitution
+            #  if schema lefts some types not used, make error
+            return result
+
+        if schema.props.types is Nil:
+            return result
+
+        for sch_type in schema.props.types:
+            res = sch_type.__accept__(self, path=path, value=value, **kwargs)
+            if not res.has_errors():
+                return result
+
+        result.add_error(SchemaMismatchValidationError(path, value, schema.props.types))
         return result
