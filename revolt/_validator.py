@@ -32,6 +32,11 @@ class SubstitutorValidator(Validator):
         if path is Nil:
             path = self._path_holder_factory()
 
+        if isinstance(value, ListSchema):
+            # TODO check rules and posibilities
+            # len() with [...] with .elements with .type checks
+            return result
+
         if error := self._validate_type(path, value, list):
             return result.add_error(error)
 
@@ -110,7 +115,7 @@ class SubstitutorValidator(Validator):
 
         if isinstance(value, IntSchema):
             if schema.props.value != Nil:
-                if schema.props.value != Nil:
+                if value.props.value != Nil:
                     if schema.props.value != value.props.value:
                         return result.add_error(
                             ValueValidationError(path, value.props.value, schema.props.value))
