@@ -164,3 +164,24 @@ def test_schema_int_max_value_with_schema_int_with_bigger_exact_value_substituti
     with then:
         assert exception.type is SubstitutionError
         assert sch == schema.int.max(value)
+
+
+def test_schema_int_max_value_with_schema_int_with_min_max_value_substitution():
+    with given:
+        min_value = 42
+        max_value = 51
+
+    with given:
+        sch = schema.int.max(max_value)
+
+    with given:
+        clarification_type = schema.int.min(min_value).max(max_value)
+
+    with when:
+        res = substitute(sch, clarification_type)
+
+    with then:
+        assert res == clarification_type
+        assert repr(res) == repr(clarification_type)
+        assert id(res) != id(clarification_type)
+        assert id(res) != id(sch)
