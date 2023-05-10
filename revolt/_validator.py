@@ -233,8 +233,8 @@ class SubstitutorValidator(Validator):
         return result
 
     def visit_bool(self, schema: BoolSchema, *,
-                  value: Any = Nil, path: Nilable[PathHolder] = Nil,
-                  **kwargs: Any) -> ValidationResult:
+                   value: Any = Nil, path: Nilable[PathHolder] = Nil,
+                   **kwargs: Any) -> ValidationResult:
         if path == Nil:
             path = ''
         result = self._validation_result_factory()
