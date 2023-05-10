@@ -44,17 +44,6 @@ from revolt.errors import SubstitutionError
     ),
     (
         schema.any(
-            schema.dict({'a': schema.int, 'b': schema.str, ...: ...}),
-            schema.dict({'b': schema.str, 'c': schema.float})
-        ),
-        schema.dict({'b': schema.str, ...: ...}),
-        schema.any(
-            schema.dict({'a': schema.int, 'b': schema.str, ...: ...}),
-            schema.dict({'b': schema.str, 'c': schema.str})  # mby should exclude?
-        ),
-    ),
-    (
-        schema.any(
             schema.dict({'b': schema.str, ...: ...}),
             schema.dict({'b': schema.str, 'c': schema.float})
         ),
@@ -184,6 +173,13 @@ def test_any_schema_clarification_with_dict_schema_with_subset_values_substituti
             schema.dict({'c': schema.float, 'b': schema.str})
         ),
         schema.dict({'b': schema.str})
+    ),
+    (
+        schema.any(
+            schema.dict({'a': schema.int, 'b': schema.str, ...: ...}),
+            schema.dict({'b': schema.str, 'c': schema.float})
+        ),
+        schema.dict({'b': schema.str, ...: ...}),
     ),
     (
         schema.any(
