@@ -1,3 +1,4 @@
+
 from typing import Any, Dict, List, Optional, cast
 
 from district42 import SchemaVisitor, from_native
@@ -42,30 +43,60 @@ class Substitutor(SchemaVisitor[GenericSchema]):
         result = schema.__accept__(self._validator, value=value)
         if result.has_errors():
             raise make_substitution_error(result, self._formatter)
+
+        if isinstance(value, NoneSchema):
+            return schema.__class__(value.props)
+
         return schema.__class__(schema.props)
 
     def visit_bool(self, schema: BoolSchema, *, value: Any = Nil, **kwargs: Any) -> BoolSchema:
         result = schema.__accept__(self._validator, value=value)
         if result.has_errors():
             raise make_substitution_error(result, self._formatter)
+
+        if isinstance(value, BoolSchema):
+            return schema.__class__(value.props)
+
         return schema.__class__(schema.props.update(value=value))
 
     def visit_int(self, schema: IntSchema, *, value: Any = Nil, **kwargs: Any) -> IntSchema:
         result = schema.__accept__(self._validator, value=value)
         if result.has_errors():
             raise make_substitution_error(result, self._formatter)
+
+        if isinstance(value, IntSchema):
+            return schema.__class__(value.props)
+
         return schema.__class__(schema.props.update(value=value))
 
     def visit_float(self, schema: FloatSchema, *, value: Any = Nil, **kwargs: Any) -> FloatSchema:
         result = schema.__accept__(self._validator, value=value)
         if result.has_errors():
             raise make_substitution_error(result, self._formatter)
+
+        if isinstance(value, FloatSchema):
+            return schema.__class__(value.props)
+
         return schema.__class__(schema.props.update(value=value))
 
     def visit_str(self, schema: StrSchema, *, value: Any = Nil, **kwargs: Any) -> StrSchema:
         result = schema.__accept__(self._validator, value=value)
+
         if result.has_errors():
             raise make_substitution_error(result, self._formatter)
+
+        if isinstance(value, StrSchema):
+            # TODO add public api get props instead _registry
+            result_props = schema.props.update(**value.props._registry)
+
+            if result_props.value != Nil:
+                result_props = result_props.update(substr=Nil, len=Nil)
+
+            if result_props.len != Nil:
+                result_props = result_props.update(min_len=Nil, max_len=Nil)
+
+            return schema.__class__(result_props)
+
         return schema.__class__(schema.props.update(value=value))
 
     def _substitute_elements(self,
@@ -197,6 +228,10 @@ class Substitutor(SchemaVisitor[GenericSchema]):
         result = schema.__accept__(self._validator, value=value)
         if result.has_errors():
             raise make_substitution_error(result, self._formatter)
+
+        if isinstance(value, BytesSchema):
+            return schema.__class__(value.props)
+
         return schema.__class__(schema.props.update(value=value))
 
     def visit_type_alias(self, schema: GenericTypeAliasSchema[TypeAliasPropsType], *,

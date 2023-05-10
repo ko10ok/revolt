@@ -1,7 +1,10 @@
 from copy import deepcopy
+from types import NoneType
 from typing import Any
 
-from district42.types import DictSchema, ListSchema
+from district42.types import (
+    DictSchema, ListSchema, IntSchema, FloatSchema, BoolSchema, BytesSchema, NoneSchema, StrSchema
+)
 from district42.utils import is_ellipsis
 from niltype import Nil, Nilable
 from th import PathHolder
@@ -10,10 +13,13 @@ from valera.errors import (
     ExtraKeyValidationError,
     LengthValidationError,
     MaxLengthValidationError,
-    MinLengthValidationError,
+    MinLengthValidationError, TypeValidationError, ValueValidationError, MinValueValidationError,
+    MaxValueValidationError,
 )
 
 __all__ = ("SubstitutorValidator",)
+
+from revolt.comparators import str_sub_schema_comparator
 
 
 class SubstitutorValidator(Validator):
@@ -79,5 +85,237 @@ class SubstitutorValidator(Validator):
             for key, val in value.items():
                 if key not in schema.props.keys:
                     result.add_error(ExtraKeyValidationError(path, value, key))
+
+        return result
+
+    def visit_int(self, schema: IntSchema, *,
+                  value: Any = Nil, path: Nilable[PathHolder] = Nil,
+                  **kwargs: Any) -> ValidationResult:
+        if path == Nil:
+            path = ''
+        result = self._validation_result_factory()
+
+        if error := self._validate_type(path, value, (int, IntSchema)):
+            return result.add_error(error)
+
+        if isinstance(value, IntSchema):
+            if schema.props.value != Nil:
+                if schema.props.value != Nil:
+                    if schema.props.value != value.props.value:
+                        return result.add_error(
+                            ValueValidationError(path, value.props.value, schema.props.value))
+
+            if schema.props.min != Nil:
+                if value.props.min != Nil:
+                    if value.props.min < schema.props.min:
+                        # TODO new error MinMinValidationError
+                        return result.add_error(
+                            MinValueValidationError(path, value.props.min, schema.props.min))
+
+                if value.props.max != Nil:
+                    if value.props.max > schema.props.min:
+                        # TODO new error MaxMinValidationError
+                        return result.add_error(
+                            MaxValueValidationError(path, value.props.min, schema.props.max))
+
+                if value.props.value != Nil:
+                    if value.props.value < schema.props.min:
+                        return result.add_error(
+                            MinValueValidationError(path, value.props.min, schema.props.min))
+
+            if schema.props.max != Nil:
+                if value.props.max != Nil:
+                    if value.props.max > schema.props.max:
+                        # TODO new error MaxMaxValidationError
+                        return result.add_error(
+                            MaxValueValidationError(path, value.props.max, schema.props.min))
+
+                if value.props.min != Nil:
+                    if value.props.min > schema.props.max:
+                        # TODO new error MaxMinValidationError
+                        return result.add_error(
+                            MinValueValidationError(path, value.props.max, schema.props.max))
+
+                if value.props.value != Nil:
+                    if value.props.value > schema.props.max:
+                        return result.add_error(
+                            MaxValueValidationError(path, value.props.max, schema.props.min))
+
+        elif isinstance(value, int):
+            if schema.props.value != Nil:
+                if schema.props.value != value:
+                    return result.add_error(
+                        ValueValidationError(path, value, schema.props.value))
+
+            if schema.props.max != Nil:
+                if value > schema.props.max:
+                    return result.add_error(
+                        MaxValueValidationError(path, value, schema.props.max))
+
+            if schema.props.min != Nil:
+                if value < schema.props.min:
+                    return result.add_error(
+                        MinValueValidationError(path, value, schema.props.min))
+        else:
+            return result.add_error(TypeValidationError(path, value, schema))
+
+        return result
+
+    def visit_float(self, schema: FloatSchema, *,
+                    value: Any = Nil, path: Nilable[PathHolder] = Nil,
+                    **kwargs: Any) -> ValidationResult:
+        if path == Nil:
+            path = ''
+        result = self._validation_result_factory()
+
+        if error := self._validate_type(path, value, (float, FloatSchema)):
+            return result.add_error(error)
+
+        if isinstance(value, FloatSchema):
+            if schema.props.value != Nil:
+                if schema.props.value != Nil:
+                    if schema.props.value != value.props.value:
+                        return result.add_error(
+                            ValueValidationError(path, value.props.value, schema.props.value))
+
+            if schema.props.min != Nil:
+                if value.props.min != Nil:
+                    if value.props.min < schema.props.min:
+                        # TODO new error MinMinValidationError
+                        return result.add_error(
+                            MinValueValidationError(path, value.props.min, schema.props.min))
+
+                if value.props.max != Nil:
+                    if value.props.max > schema.props.min:
+                        # TODO new error MaxMinValidationError
+                        return result.add_error(
+                            MaxValueValidationError(path, value.props.min, schema.props.max))
+
+                if value.props.value != Nil:
+                    if value.props.value < schema.props.min:
+                        return result.add_error(
+                            MinValueValidationError(path, value.props.min, schema.props.min))
+
+            if schema.props.max != Nil:
+                if value.props.max != Nil:
+                    if value.props.max > schema.props.max:
+                        # TODO new error MaxMaxValidationError
+                        return result.add_error(
+                            MaxValueValidationError(path, value.props.max, schema.props.min))
+
+                if value.props.min != Nil:
+                    if value.props.min > schema.props.max:
+                        # TODO new error MaxMinValidationError
+                        return result.add_error(
+                            MinValueValidationError(path, value.props.max, schema.props.max))
+
+                if value.props.value != Nil:
+                    if value.props.value > schema.props.max:
+                        return result.add_error(
+                            MaxValueValidationError(path, value.props.max, schema.props.min))
+
+        elif isinstance(value, float):
+            if schema.props.value != Nil:
+                if schema.props.value != value:
+                    return result.add_error(
+                        ValueValidationError(path, value, schema.props.value))
+
+            if schema.props.max != Nil:
+                if value > schema.props.max:
+                    return result.add_error(
+                        MaxValueValidationError(path, value, schema.props.max))
+
+            if schema.props.min != Nil:
+                if value < schema.props.min:
+                    return result.add_error(
+                        MinValueValidationError(path, value, schema.props.min))
+        else:
+            return result.add_error(TypeValidationError(path, value, schema))
+
+        return result
+
+    def visit_bool(self, schema: BoolSchema, *,
+                   value: Any = Nil, path: Nilable[PathHolder] = Nil,
+                   **kwargs: Any) -> ValidationResult:
+        if path == Nil:
+            path = ''
+        result = self._validation_result_factory()
+
+        if error := self._validate_type(path, value, (bool, BoolSchema)):
+            return result.add_error(error)
+
+        if isinstance(value, BoolSchema):
+            if schema.props.value != Nil:
+                if schema.props.value != Nil:
+                    if schema.props.value != value.props.value:
+                        return result.add_error(
+                            ValueValidationError(path, value.props.value, schema.props.value))
+        elif isinstance(value, bool):
+            if schema.props.value != Nil:
+                if schema.props.value != value:
+                    return result.add_error(
+                        ValueValidationError(path, value, schema.props.value))
+        else:
+            return result.add_error(TypeValidationError(path, value, schema))
+
+        return result
+
+    def visit_bytes(self, schema: BytesSchema, *,
+                    value: Any = Nil, path: Nilable[PathHolder] = Nil,
+                    **kwargs: Any) -> ValidationResult:
+        if path == Nil:
+            path = ''
+        result = self._validation_result_factory()
+
+        if error := self._validate_type(path, value, (bytes, BytesSchema)):
+            return result.add_error(error)
+
+        if isinstance(value, BytesSchema):
+            if schema.props.value != Nil:
+                if schema.props.value != Nil:
+                    if schema.props.value != value.props.value:
+                        return result.add_error(
+                            ValueValidationError(path, value.props.value, schema.props.value))
+        elif isinstance(value, bytes):
+            if schema.props.value != Nil:
+                if schema.props.value != value:
+                    return result.add_error(
+                        ValueValidationError(path, value, schema.props.value))
+        else:
+            return result.add_error(TypeValidationError(path, value, schema))
+
+        return result
+
+    def visit_none(self, schema: NoneSchema, *,
+                   value: Any = Nil, path: Nilable[PathHolder] = Nil,
+                   **kwargs: Any) -> ValidationResult:
+        if path == Nil:
+            path = ''
+        result = self._validation_result_factory()
+
+        if error := self._validate_type(path, value, (NoneType, NoneSchema)):
+            return result.add_error(error)
+
+        return result
+
+    def visit_str(self, schema: StrSchema, *,
+                  value: Any = Nil, path: Nilable[PathHolder] = Nil,
+                  **kwargs: Any) -> ValidationResult:
+        if path == Nil:
+            path = ''
+        result = self._validation_result_factory()
+
+        if error := self._validate_type(path, value, (str, StrSchema)):
+            return result.add_error(error)
+
+        if isinstance(value, StrSchema):
+            if not str_sub_schema_comparator(schema, value):
+                # TODO new error
+                return result.add_error(TypeValidationError(path, value, schema))
+
+        elif isinstance(value, str):
+            return super().visit_str(schema, value=value, path=path, **kwargs)
+        else:
+            return result.add_error(TypeValidationError(path, value, schema))
 
         return result
