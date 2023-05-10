@@ -25,6 +25,8 @@ from .errors import SubstitutionError, make_substitution_error
 
 __all__ = ("Substitutor",)
 
+from .utils.nil_dict import nil_dict_to_empty
+
 
 class Substitutor(SchemaVisitor[GenericSchema]):
     def __init__(self, validator: Optional[Validator] = None,
@@ -178,10 +180,30 @@ class Substitutor(SchemaVisitor[GenericSchema]):
         if result.has_errors():
             raise make_substitution_error(result, self._formatter)
 
+        keys: Dict[Any, Any] = {}
+
+        if isinstance(value, DictSchema):
+            if schema.props.keys is Nil and value.props.keys is Nil:
+                return schema.__class__()
+
+            for key, (val, is_optional) in value.props.keys.items():
+                if key in nil_dict_to_empty(schema.props.keys):
+                    if schema.props.keys[key][0] is ...:
+                        keys[key] = (val, is_optional)
+                    else:
+                        keys[key] = (
+                            schema.props.keys[key][0].__accept__(self, value=value[key], **kwargs),
+                            False
+                        )
+                else:
+                    if ... in nil_dict_to_empty(schema.props.keys) or schema.props.keys is Nil:
+                        keys[key] = (val, is_optional)
+
+            return schema.__class__(schema.props.update(keys=keys))
+
         if ... in value:
             raise SubstitutionError("Can't substitute ...")
 
-        keys: Dict[Any, Any] = {}
         if schema.props.keys is Nil or (len(schema.props.keys) == 1 and ... in schema.props.keys):
             for key, val in value.items():
                 keys[key] = (self._from_native(val), False)
