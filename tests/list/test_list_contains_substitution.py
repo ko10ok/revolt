@@ -222,3 +222,104 @@ def test_list_contains_substitution_body():
     with then:
         assert res == schema.list([..., schema.int(1), schema.int(2), ...])
         assert res != sch
+
+
+def test_list_contains_substitution_with_exect_values():
+    with given:
+        sch = schema.list([..., schema.int, schema.float, ...])
+
+    with when:
+        res = substitute(sch, [1, 2.0])
+
+    with then:
+        assert res == schema.list([schema.int(1), schema.float(2.0)])
+        assert res != sch
+
+
+def test_list_contains_substitution_with_contains_values():
+    with given:
+        sch = schema.list([..., schema.int, schema.float, ...])
+
+    with when:
+        res = substitute(sch, [..., 1, 2.0, ...])  # TODO should we?
+
+    with then:
+        assert res == schema.list([schema.int(1), schema.float(2.0)])
+        assert res != sch
+
+
+def test_list_contains_substitution_with_schema_contains_values():
+    with given:
+        sch = schema.list([..., schema.int, schema.float, ...])
+
+    with when:
+        res = substitute(sch, schema.list([..., schema.int(1), schema.float(2.0), ...]))
+
+    with then:
+        assert res == schema.list([..., schema.int(1), schema.float(2.0), ...])
+        assert res != sch
+
+
+def test_list_contains_substitution_with_constant_count_values():
+    with given:
+        sch = schema.list([..., schema.int, schema.float, ...])
+
+    with when:
+        res = substitute(sch, schema.list([schema.int(1), schema.float(2.0)]))
+
+    with then:
+        assert res == schema.list([schema.int(1), schema.float(2.0)])
+        assert res != sch
+
+# TODO error should be, check case
+# def test_list_contains_substitution_with_multiple_cases_contains_values():
+#     with given:
+#         sch = schema.list([..., schema.int, schema.int, schema.float, ...])
+#
+#     with when:
+#         res = substitute(sch, schema.list([..., schema.int(1), schema.float(2.0), ...]))
+#
+#     with then:
+#         assert res == schema.any(
+#             schema.list([..., schema.int(1), schema.int, schema.float(2.0), ...]),
+#             schema.list([..., schema.int, schema.int(1), schema.float(2.0), ...]),
+#             schema.list([
+#                 ..., schema.int(1), schema.float(2.0), schema.int, schema.int, schema.float, ...
+#             ]),
+#             schema.list([
+#                 ..., schema.int(1), schema.float(2.0), ..., schema.int, schema.int,
+#                 schema.float, ...
+#             ]),
+#             schema.list([
+#                 schema.int(1), schema.float(2.0), ..., schema.int, schema.int, schema.float, ...
+#             ]),
+#             schema.list([
+#                 ..., schema.int, schema.int, schema.float, ..., schema.int(1), schema.float(
+#                 2.0), ...
+#             ]),
+#             schema.list([
+#                 ..., schema.int, schema.int, schema.float, ..., schema.int(1), schema.float(2.0)
+#             ]),
+#         )
+#         assert res != sch
+
+# TODO error should be, check case
+# def test_list_contains_substitution_with_one_extra_with_multiple_cases_contains_values():
+#     with given:
+#         sch = schema.list([..., schema.int, schema.int, schema.float, ...])
+#
+#     with when:
+#         res = substitute(sch, schema.list([..., schema.float(2.0), schema.int(1), ...]))
+#
+#     with then:
+#         assert res == schema.any(
+#             schema.list([..., schema.int, schema.int, schema.float(2.0), schema.int(1), ...]),
+#             schema.list([
+#                 ..., schema.int, schema.int, schema.float, schema.float(2.0), schema.int(1), ...
+#             ]),
+#             schema.list([..., schema.float(2.0), schema.int(1), schema.int, schema.float, ...]),
+#             schema.list([
+#                 ..., schema.float(2.0), schema.int(1), schema.int, schema.int, schema.float, ...
+#             ]),
+#         )
+#         assert res != sch

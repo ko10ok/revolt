@@ -1,4 +1,4 @@
-
+from builtins import NotImplementedError
 from typing import Any, Dict, List, Optional, cast
 
 from district42 import SchemaVisitor, from_native
@@ -25,6 +25,9 @@ from ._validator import SubstitutorValidator
 from .errors import SubstitutionError, make_substitution_error
 
 __all__ = ("Substitutor",)
+
+from .utils.nil_dict import nil_dict_to_empty
+from .utils.list_combinator import make_list_combinations, ErrStack
 
 
 class Substitutor(SchemaVisitor[GenericSchema]):
@@ -125,64 +128,145 @@ class Substitutor(SchemaVisitor[GenericSchema]):
         if result.has_errors():
             raise make_substitution_error(result, self._formatter)
 
-        if len(value) > 0 and all(is_ellipsis(x) for x in value):
-            raise SubstitutionError("Can't substitute all ...")
+        if isinstance(value, ListSchema):
+            err_stack = ErrStack()
 
-        if (schema.props.elements is Nil) and (schema.props.type is Nil):
-            elements = []
-            for val in value:
-                element = val if is_ellipsis(val) else self._from_native(val)
-                elements.append(element)
-            return schema.__class__(schema.props.update(elements=elements))
+            if (schema.props.elements is Nil):
+                return schema.__class__(value.props)
 
-        if schema.props.type is not Nil:
-            elements = []
-            for val in value:
-                if is_ellipsis(val):
-                    element = val
+            if (schema.props.elements == value.props.elements):
+                return schema.__class__(schema.props)
+
+            if (schema.props.elements == [...] and value.props.elements is Nil):
+                return schema.__class__(value.props)
+
+            # TODO move from substitutor
+            def comparator(schema: GenericSchema, sub_schema: GenericSchema):
+                # ... % ANY possible
+                if is_ellipsis(schema):
+                    return True
+
+                # ANY % ANY error check
+                result = schema.__accept__(self._validator, value=sub_schema)
+                if not result.has_errors():
+                    return True
+
+                return False
+
+            combinations = list(make_list_combinations(schema.props.elements, value.props.elements,
+                                                       err_stack, comparator=comparator))
+            possible_combinations = []
+            for combination in combinations:
+                res_combination = []
+                for pair in combination:
+                    if is_ellipsis(pair.l):
+                        if pair.r:
+                            res_combination += [pair.r]
+                        continue
+
+                    try:
+                        res = pair.l.__accept__(self, value=pair.r, **kwargs)
+                    except SubstitutionError:
+                        break
+
+                    res_combination += [res]
                 else:
-                    element = schema.props.type.__accept__(self, value=val, **kwargs)
-                elements.append(element)
-            return schema.__class__(schema.props.update(elements=elements, type=Nil))
+                    if res_combination:
+                        possible_combinations += [res_combination]
+            if not possible_combinations:
+                # TODO make error from err_stack.
+                raise SubstitutionError(f"Can't substitute {value} into {schema} ")
+            if len(possible_combinations) == 1:
+                return schema.__class__(schema.props.update(elements=possible_combinations[0]))
+            if len(possible_combinations) > 1:
+                # TODO make any of combinations
+                raise NotImplementedError
+                return AnySchema(
+                    ListSchema(possible_combinations)
+                )
 
-        elements = cast(List[GenericSchema], schema.props.elements)
-        if ... in value:
-            raise SubstitutionError("Can't substitute ...")
+        elif isinstance(value, List):
+            if len(value) > 0 and all(is_ellipsis(x) for x in value):
+                raise SubstitutionError("Can't substitute all ...")
 
-        # body
-        if (len(elements) > 2) and is_ellipsis(elements[0]) and is_ellipsis(elements[-1]):
-            for index, val in enumerate(value):
-                try:
-                    substituted = self._substitute_elements(value, elements[1:-1], index, **kwargs)
-                except SubstitutionError:
-                    pass
-                else:
-                    return schema.__class__(schema.props.update(elements=substituted))
+            if (schema.props.elements is Nil) and (schema.props.type is Nil):
+                elements = []
+                for val in value:
+                    element = val if is_ellipsis(val) else self._from_native(val)
+                    elements.append(element)
+                return schema.__class__(schema.props.update(elements=elements))
 
-        # head
-        if (len(elements) >= 2) and is_ellipsis(elements[-1]):
-            substituted = self._substitute_elements(value, elements[:-1], **kwargs)
+            if schema.props.type is not Nil:
+                elements = []
+                for val in value:
+                    if is_ellipsis(val):
+                        element = val
+                    else:
+                        element = schema.props.type.__accept__(self, value=val, **kwargs)
+                    elements.append(element)
+                return schema.__class__(schema.props.update(elements=elements, type=Nil))
+
+            elements = cast(List[GenericSchema], schema.props.elements)
+            if ... in value:
+                raise SubstitutionError("Can't substitute ...")
+
+            # body
+            if (len(elements) > 2) and is_ellipsis(elements[0]) and is_ellipsis(elements[-1]):
+                for index, val in enumerate(value):
+                    try:
+                        substituted = self._substitute_elements(value, elements[1:-1], index,
+                                                                **kwargs)
+                    except SubstitutionError:
+                        pass
+                    else:
+                        return schema.__class__(schema.props.update(elements=substituted))
+
+            # head
+            if (len(elements) >= 2) and is_ellipsis(elements[-1]):
+                substituted = self._substitute_elements(value, elements[:-1], **kwargs)
+                return schema.__class__(schema.props.update(elements=substituted))
+
+            # tail
+            if (len(elements) >= 1) and is_ellipsis(elements[0]):
+                elements = elements[1:]
+                index = max(0, len(value) - len(elements))
+                substituted = self._substitute_elements(value, elements, index, **kwargs)
+                return schema.__class__(schema.props.update(elements=substituted))
+
+            substituted = self._substitute_elements(value, elements, **kwargs)
             return schema.__class__(schema.props.update(elements=substituted))
 
-        # tail
-        if (len(elements) >= 1) and is_ellipsis(elements[0]):
-            elements = elements[1:]
-            index = max(0, len(value) - len(elements))
-            substituted = self._substitute_elements(value, elements, index, **kwargs)
-            return schema.__class__(schema.props.update(elements=substituted))
-
-        substituted = self._substitute_elements(value, elements, **kwargs)
-        return schema.__class__(schema.props.update(elements=substituted))
+        raise SubstitutionError(f"Can't substitute {schema} into {value}")
 
     def visit_dict(self, schema: DictSchema, *, value: Any = Nil, **kwargs: Any) -> DictSchema:
         result = schema.__accept__(self._validator, value=value)
         if result.has_errors():
             raise make_substitution_error(result, self._formatter)
 
+        keys: Dict[Any, Any] = {}
+
+        if isinstance(value, DictSchema):
+            if schema.props.keys is Nil and value.props.keys is Nil:
+                return schema.__class__()
+
+            for key, (val, is_optional) in value.props.keys.items():
+                if key in nil_dict_to_empty(schema.props.keys):
+                    if schema.props.keys[key][0] is ...:
+                        keys[key] = (val, is_optional)
+                    else:
+                        keys[key] = (
+                            schema.props.keys[key][0].__accept__(self, value=value[key], **kwargs),
+                            False
+                        )
+                else:
+                    if ... in nil_dict_to_empty(schema.props.keys) or schema.props.keys is Nil:
+                        keys[key] = (val, is_optional)
+
+            return schema.__class__(schema.props.update(keys=keys))
+
         if ... in value:
             raise SubstitutionError("Can't substitute ...")
 
-        keys: Dict[Any, Any] = {}
         if schema.props.keys is Nil or (len(schema.props.keys) == 1 and ... in schema.props.keys):
             for key, val in value.items():
                 keys[key] = (self._from_native(val), False)
@@ -204,6 +288,14 @@ class Substitutor(SchemaVisitor[GenericSchema]):
         result = schema.__accept__(self._validator, value=value)
         if result.has_errors():
             raise make_substitution_error(result, self._formatter)
+
+        if isinstance(value, AnySchema):
+            return schema.__class__(value.props)
+
+        if isinstance(value, (
+            StrSchema, BoolSchema, NoneSchema, IntSchema, FloatSchema, BytesSchema, ConstSchema,
+            DictSchema, ListSchema)):
+            return value.__class__(value.props)
 
         types = []
         if schema.props.types is Nil:

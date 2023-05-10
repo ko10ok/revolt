@@ -1,7 +1,8 @@
 from copy import deepcopy
 from types import NoneType
-from typing import Any
+from typing import Any, Dict
 
+from district42 import AnySchema
 from district42.types import (
     DictSchema, ListSchema, IntSchema, FloatSchema, BoolSchema, BytesSchema, NoneSchema, StrSchema
 )
@@ -14,12 +15,13 @@ from valera.errors import (
     LengthValidationError,
     MaxLengthValidationError,
     MinLengthValidationError, TypeValidationError, ValueValidationError, MinValueValidationError,
-    MaxValueValidationError,
+    MaxValueValidationError, SchemaMismatchValidationError,
 )
 
 __all__ = ("SubstitutorValidator",)
 
 from revolt.comparators import str_sub_schema_comparator
+from revolt.comparators.dict_comparator import dict_sub_schema_comparator
 
 
 class SubstitutorValidator(Validator):
@@ -29,6 +31,11 @@ class SubstitutorValidator(Validator):
         result = self._validation_result_factory()
         if path is Nil:
             path = self._path_holder_factory()
+
+        if isinstance(value, ListSchema):
+            # TODO check rules and posibilities
+            # len() with [...] with .elements with .type checks
+            return result
 
         if error := self._validate_type(path, value, list):
             return result.add_error(error)
@@ -67,24 +74,32 @@ class SubstitutorValidator(Validator):
         if path is Nil:
             path = self._path_holder_factory()
 
-        if error := self._validate_type(path, value, dict):
-            return result.add_error(error)
+        if isinstance(value, DictSchema):
+            if not dict_sub_schema_comparator(schema, value):
+                # TODO new error
+                return result.add_error(TypeValidationError(path, value, schema))
 
-        if schema.props.keys is Nil:
-            return result
+        elif isinstance(value, Dict):
+            if error := self._validate_type(path, value, dict):
+                return result.add_error(error)
 
-        for key, (val, is_optional) in schema.props.keys.items():
-            if is_ellipsis(key):
-                continue
-            if key in value:
-                nested_path = deepcopy(path)[key]
-                res = val.__accept__(self, value=value[key], path=nested_path, **kwargs)
-                result.add_errors(res.get_errors())
+            if schema.props.keys is Nil:
+                return result
 
-        if (... not in schema.props.keys) and (set(schema.props.keys) != set(value)):
-            for key, val in value.items():
-                if key not in schema.props.keys:
-                    result.add_error(ExtraKeyValidationError(path, value, key))
+            for key, (val, is_optional) in schema.props.keys.items():
+                if is_ellipsis(key):
+                    continue
+                if key in value:
+                    nested_path = deepcopy(path)[key]
+                    res = val.__accept__(self, value=value[key], path=nested_path, **kwargs)
+                    result.add_errors(res.get_errors())
+
+            if (... not in schema.props.keys) and (set(schema.props.keys) != set(value)):
+                for key, val in value.items():
+                    if key not in schema.props.keys:
+                        result.add_error(ExtraKeyValidationError(path, value, key))
+        else:
+            return result.add_error(TypeValidationError(path, value, schema))
 
         return result
 
@@ -100,7 +115,7 @@ class SubstitutorValidator(Validator):
 
         if isinstance(value, IntSchema):
             if schema.props.value != Nil:
-                if schema.props.value != Nil:
+                if value.props.value != Nil:
                     if schema.props.value != value.props.value:
                         return result.add_error(
                             ValueValidationError(path, value.props.value, schema.props.value))
@@ -318,4 +333,28 @@ class SubstitutorValidator(Validator):
         else:
             return result.add_error(TypeValidationError(path, value, schema))
 
+        return result
+
+    def visit_any(self, schema: AnySchema, *,
+                  value: Any = Nil, path: Nilable[PathHolder] = Nil,
+                  **kwargs: Any) -> ValidationResult:
+        result = self._validation_result_factory()
+        if path is Nil:
+            path = self._path_holder_factory()
+
+        if isinstance(value, AnySchema):
+            # TODO check types intersection
+            #  via value.prop.types in schema.prop.types substitution
+            #  if schema lefts some types not used, make error
+            return result
+
+        if schema.props.types is Nil:
+            return result
+
+        for sch_type in schema.props.types:
+            res = sch_type.__accept__(self, path=path, value=value, **kwargs)
+            if not res.has_errors():
+                return result
+
+        result.add_error(SchemaMismatchValidationError(path, value, schema.props.types))
         return result
