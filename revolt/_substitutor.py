@@ -54,6 +54,10 @@ class Substitutor(SchemaVisitor[GenericSchema]):
         result = schema.__accept__(self._validator, value=value)
         if result.has_errors():
             raise make_substitution_error(result, self._formatter)
+
+        if isinstance(value, IntSchema):
+            return schema.__class__(value.props)
+
         return schema.__class__(schema.props.update(value=value))
 
     def visit_float(self, schema: FloatSchema, *, value: Any = Nil, **kwargs: Any) -> FloatSchema:
