@@ -1,8 +1,9 @@
 from copy import deepcopy
+from types import NoneType
 from typing import Any
 
 from district42.types import (
-    DictSchema, ListSchema, IntSchema, FloatSchema, BoolSchema, BytesSchema
+    DictSchema, ListSchema, IntSchema, FloatSchema, BoolSchema, BytesSchema, NoneSchema
 )
 from district42.utils import is_ellipsis
 from niltype import Nil, Nilable
@@ -281,5 +282,17 @@ class SubstitutorValidator(Validator):
                         ValueValidationError(path, value, schema.props.value))
         else:
             return result.add_error(TypeValidationError(path, value, schema))
+
+        return result
+
+    def visit_none(self, schema: NoneSchema, *,
+                   value: Any = Nil, path: Nilable[PathHolder] = Nil,
+                   **kwargs: Any) -> ValidationResult:
+        if path == Nil:
+            path = ''
+        result = self._validation_result_factory()
+
+        if error := self._validate_type(path, value, (NoneType, NoneSchema)):
+            return result.add_error(error)
 
         return result
