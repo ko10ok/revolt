@@ -1,7 +1,7 @@
 from copy import deepcopy
 from typing import Any
 
-from district42.types import DictSchema, ListSchema, IntSchema, FloatSchema
+from district42.types import DictSchema, ListSchema, IntSchema, FloatSchema, BoolSchema
 from district42.utils import is_ellipsis
 from niltype import Nil, Nilable
 from th import PathHolder
@@ -225,6 +225,32 @@ class SubstitutorValidator(Validator):
                 if value < schema.props.min:
                     return result.add_error(
                         MinValueValidationError(path, value, schema.props.min))
+        else:
+            return result.add_error(TypeValidationError(path, value, schema))
+
+        return result
+
+    def visit_bool(self, schema: BoolSchema, *,
+                  value: Any = Nil, path: Nilable[PathHolder] = Nil,
+                  **kwargs: Any) -> ValidationResult:
+        if path == Nil:
+            path = ''
+        result = self._validation_result_factory()
+
+        if error := self._validate_type(path, value, (bool, BoolSchema)):
+            return result.add_error(error)
+
+        if isinstance(value, BoolSchema):
+            if schema.props.value != Nil:
+                if schema.props.value != Nil:
+                    if schema.props.value != value.props.value:
+                        return result.add_error(
+                            ValueValidationError(path, value.props.value, schema.props.value))
+        elif isinstance(value, bool):
+            if schema.props.value != Nil:
+                if schema.props.value != value:
+                    return result.add_error(
+                        ValueValidationError(path, value, schema.props.value))
         else:
             return result.add_error(TypeValidationError(path, value, schema))
 
