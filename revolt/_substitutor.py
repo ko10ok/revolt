@@ -1,3 +1,4 @@
+
 from typing import Any, Dict, List, Optional, cast
 
 from district42 import SchemaVisitor, from_native
@@ -80,8 +81,22 @@ class Substitutor(SchemaVisitor[GenericSchema]):
 
     def visit_str(self, schema: StrSchema, *, value: Any = Nil, **kwargs: Any) -> StrSchema:
         result = schema.__accept__(self._validator, value=value)
+
         if result.has_errors():
             raise make_substitution_error(result, self._formatter)
+
+        if isinstance(value, StrSchema):
+            # TODO add public api get props instead _registry
+            result_props = schema.props.update(**value.props._registry)
+
+            if result_props.value != Nil:
+                result_props = result_props.update(substr=Nil, len=Nil)
+
+            if result_props.len != Nil:
+                result_props = result_props.update(min_len=Nil, max_len=Nil)
+
+            return schema.__class__(result_props)
+
         return schema.__class__(schema.props.update(value=value))
 
     def _substitute_elements(self,
