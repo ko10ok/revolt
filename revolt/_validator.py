@@ -1,7 +1,9 @@
 from copy import deepcopy
 from typing import Any
 
-from district42.types import DictSchema, ListSchema, IntSchema, FloatSchema, BoolSchema
+from district42.types import (
+    DictSchema, ListSchema, IntSchema, FloatSchema, BoolSchema, BytesSchema
+)
 from district42.utils import is_ellipsis
 from niltype import Nil, Nilable
 from th import PathHolder
@@ -247,6 +249,32 @@ class SubstitutorValidator(Validator):
                         return result.add_error(
                             ValueValidationError(path, value.props.value, schema.props.value))
         elif isinstance(value, bool):
+            if schema.props.value != Nil:
+                if schema.props.value != value:
+                    return result.add_error(
+                        ValueValidationError(path, value, schema.props.value))
+        else:
+            return result.add_error(TypeValidationError(path, value, schema))
+
+        return result
+
+    def visit_bytes(self, schema: BytesSchema, *,
+                  value: Any = Nil, path: Nilable[PathHolder] = Nil,
+                  **kwargs: Any) -> ValidationResult:
+        if path == Nil:
+            path = ''
+        result = self._validation_result_factory()
+
+        if error := self._validate_type(path, value, (bytes, BytesSchema)):
+            return result.add_error(error)
+
+        if isinstance(value, BytesSchema):
+            if schema.props.value != Nil:
+                if schema.props.value != Nil:
+                    if schema.props.value != value.props.value:
+                        return result.add_error(
+                            ValueValidationError(path, value.props.value, schema.props.value))
+        elif isinstance(value, bytes):
             if schema.props.value != Nil:
                 if schema.props.value != value:
                     return result.add_error(
