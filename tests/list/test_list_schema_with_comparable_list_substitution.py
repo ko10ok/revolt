@@ -37,6 +37,8 @@ ListSchema ranging via one steps clarifying mutations tree
 
 @pytest.mark.parametrize("basic_type,clarification_type", [
     (schema.list, schema.list([...])),
+    (schema.list([...]), schema.list),
+    (schema.list(schema.any), schema.list),  # ????
     (schema.list, schema.list(schema.any)),
     (schema.list([...]), schema.list.len(3)),
     (schema.list.len(3), schema.list([schema.any] * 3)),
@@ -101,8 +103,6 @@ def test_dict_schema_clarification_with_dict_schema_with_subset_values_substitut
 
 
 @pytest.mark.parametrize("basic_type,clarification_type", [
-    # (schema.list([...]), schema.list), ???
-    # (schema.list(schema.any), schema.list, ), ???
     (schema.list.len(3), schema.list([...])),
     (schema.list([schema.any] * 3), schema.list.len(3)),
     (schema.list.len(3), schema.list([schema.any] * 3)),

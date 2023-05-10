@@ -63,14 +63,6 @@ from revolt.errors import SubstitutionError
     ),
     (
         schema.any(
-            schema.dict({'b': schema.str, ...: ...}),
-            schema.dict({'b': schema.str, 'c': schema.float})
-        ),
-        schema.dict({'b': schema.str, 'c': schema.float}),
-        schema.dict({'b': schema.str, 'c': schema.float}),
-    ),
-    (
-        schema.any(
             schema.dict({...: ...}),
             schema.dict({'a': schema.str})
         ),

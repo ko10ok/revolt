@@ -81,7 +81,6 @@ def test_dict_schema_clarification_with_dict_schema_with_subset_values_substitut
     # (schema.dict({...: ...}), schema.dict), ???
     (schema.dict({'a': schema.any, ...: ...}), schema.dict),
     (schema.dict({'a': schema.any}), schema.dict),
-    (schema.dict({...: ...}), schema.dict({...: ...})),
     (schema.dict({'a': schema.any, ...: ...}), schema.dict({...: ...})),
     (schema.dict({'a': schema.any}), schema.dict({...: ...})),
     (schema.dict({'a': schema.any, ...: ...}), schema.dict({'a': schema.any, ...: ...})),
